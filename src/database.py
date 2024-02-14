@@ -1,6 +1,12 @@
 from typing import Optional
 
 from sqlalchemy import delete, insert, select, text
+from sqlalchemy.ext.asyncio import (
+    create_async_engine,
+)
+from sqlalchemy.orm import declarative_base
+
+
 from async_lru import alru_cache
 
 from src.models import (
@@ -9,12 +15,6 @@ from src.models import (
     Submission,
     Goal,
 )
-
-
-from sqlalchemy.ext.asyncio import (
-    create_async_engine,
-)
-from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 
@@ -39,7 +39,7 @@ async def clean_database():
     if input("Are you sure you want to drop everything? (y/n) ") != 'y':
         print('Skipping')
         return
-    
+
     async with DB_ENGINE.begin() as conn:
         print()
         print(await conn.execute(delete(Submission)))
@@ -78,7 +78,7 @@ async def new_goal(user_id, category_id,goal_description, metric, target, freque
     async with DB_ENGINE.begin() as conn:
         cursor = await conn.execute(insert(Goal).values(
             user_id=user_id,
-            category_id=category_id, 
+            category_id=category_id,
             goal_description=goal_description,
             metric=metric,
             target=target,
@@ -119,7 +119,8 @@ async def get_user(user_id) -> Optional[User]:
 @alru_cache(maxsize=1000)
 async def get_goal(category_id, user_id) -> Optional[Goal]:
     async with DB_ENGINE.begin() as conn:
-        return (await conn.execute(select(Goal).where(Goal.category_id == category_id).where(Goal.user_id == user_id))).first()
+        return (await conn.execute(
+            select(Goal).where(Goal.category_id == category_id).where(Goal.user_id == user_id))).first()
 
 
 async def ensure_user(discord_user) -> User:
@@ -139,7 +140,7 @@ async def get_submission_leaderboard():
 async def select_raw(query, **params):
     async with DB_ENGINE.begin() as conn:
         return (await conn.execute(text(query), params)).fetchall()
-    
+
 
 @alru_cache()
 async def get_categories():

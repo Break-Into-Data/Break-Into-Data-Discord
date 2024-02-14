@@ -2,7 +2,6 @@ import asyncio
 import os
 from dataclasses import dataclass
 from datetime import datetime
-import json 
 import dotenv
 import discord
 from discord import app_commands
@@ -12,11 +11,11 @@ from src.onboarding import OnboardingView
 from src.database import (
     get_category_by_name,
     get_category_for_voice,
-    init_db, 
+    init_db,
     get_goal,
-    new_goal, 
+    new_goal,
     ensure_user,
-    get_category, 
+    get_category,
     new_submission,
 )
 
@@ -46,24 +45,24 @@ class Track:
 
 TRACKS = {
     track.name: track for track in [
-        Track(name="Fitness", 
+        Track(name="Fitness",
               questions_needed=['description', 'metric', 'target', 'frequency'],
-              default_tracking_metric="e.g. miles, minutes ", 
+              default_tracking_metric="e.g. miles, minutes ",
               default_daily_target='e.g.30'),
-        Track(name="Coding", 
+        Track(name="Coding",
               questions_needed=['target', 'frequency'],
               default_tracking_metric="e.g. count number", default_daily_target='e.g. 3 or 5'),
-        Track(name="Studying", 
+        Track(name="Studying",
               questions_needed=['target', 'frequency'],
               default_tracking_metric="e.g. minutes, hours", default_daily_target='60 or 2'),
         Track(name="Meditation",
               questions_needed=['target', 'frequency'],
-              default_tracking_metric="e.g. minutes, hours", 
+              default_tracking_metric="e.g. minutes, hours",
               default_daily_target='60 or 2'),
         Track(name="Content Creation",
               questions_needed=['description', 'frequency'],
               default_tracking_metric="e.g. number of posts/videos", default_daily_target='1 or 2'),
-        Track(name="Other", 
+        Track(name="Other",
               questions_needed=['description', 'metric', 'target', 'frequency'],
               default_tracking_metric="Smiles", default_daily_target=10),
     ]
@@ -79,28 +78,30 @@ class TrackSettingsView(discord.ui.View):
             self.add_button(track)
 
     def add_button(self, track: Track):
-        btn = discord.ui.Button(label=track.name, style=discord.ButtonStyle.secondary, custom_id=track.name)
+        btn = discord.ui.Button(label=track.name,
+                                style=discord.ButtonStyle.secondary, custom_id=track.name)
         self.add_item(btn)
 
     async def interaction_check(self, interaction: discord.Interaction):
 
         #print(interaction)
         #print(interaction.type)
-    
+
         #print(discord.InteractionType.component)
         if not interaction.type == discord.InteractionType.component:
             return False
         track = TRACKS.get(interaction.data['custom_id'])
         if not track:
-            interaction.response.send_message("Something went wrong, please try again", ephemeral=True)
+            interaction.response.send_message(
+                "Something went wrong, please try again", ephemeral=True)
             return False
-        
+
         modal = TrackSettingsModal(track)
         await interaction.response.send_modal(modal)
 
         return True
 
-#This adds user's inputs in the goals table 
+#This adds user's inputs in the goals table
 
 class TrackSettingsModal(discord.ui.Modal):
     def __init__(self, track: Track):
@@ -119,7 +120,7 @@ class TrackSettingsModal(discord.ui.Modal):
 
         if 'metric' in track.questions_needed:
             self.metric_input = discord.ui.TextInput(
-                label="What is your metric?", 
+                label="What is your metric?",
                 placeholder=track.default_tracking_metric)
             self.add_item(self.metric_input)
 
@@ -136,30 +137,30 @@ class TrackSettingsModal(discord.ui.Modal):
         if 'target' in track.questions_needed:
             self.daily_target_input = discord.ui.TextInput(
                 label=target_map[track.name],
-                placeholder=f"{track.default_daily_target} [it must be a number]")
+                placeholder=f"{track.default_daily_target} (it must be a number)")
             self.add_item(self.daily_target_input)
 
-        # New field for frequency 
+        # New field for frequency
 
         if 'frequency' in track.questions_needed:
             self.frequency_input = discord.ui.TextInput(
-                label="What is the frequency? ",
-                placeholder="e.g. 4 [For 4 times a week] ")
+                label="What is the frequency per week? ",
+                placeholder="e.g. 4, 5 (times a week) ")
             self.add_item(self.frequency_input)
 
 
 #This makes sure the user input a number and not a string
     async def on_submit(self, interaction: discord.Interaction):
         try:
-            daily_target = int(self.daily_target_input.value)
+            daily_target = int(self.daily_target_input.value.strip())
         except ValueError:
             await interaction.response.send_message(
                 "Daily target must be a valid number, please try again",
                 ephemeral=True)
             return
-        
+
         await interaction.response.defer(thinking=True, ephemeral=True)
-        
+
         user = await ensure_user(interaction.user)
 
         # TODO: get category by track
@@ -170,8 +171,8 @@ class TrackSettingsModal(discord.ui.Modal):
             await interaction.followup.send(
                 "Something went wrong, please try later", ephemeral=True)
             return
-        
-        
+
+
         await new_goal(
             user_id=user.user_id,
             category_id=category.category_id,
@@ -180,8 +181,8 @@ class TrackSettingsModal(discord.ui.Modal):
             target=daily_target,
             frequency=self.frequency_input.value if 'frequency' in self.track.questions_needed else 'daily'
         )
-        
-        await interaction.followup.send(f"Your settings were updated!", ephemeral=True)
+
+        await interaction.followup.send("Your settings were updated!", ephemeral=True)
 
 
 @client.event
@@ -201,14 +202,14 @@ async def on_ready():
 async def on_message(message):
     if message.author == client.user:
         return
-        
+
     if message.attachments:
         user = await ensure_user(message.author)
 
         category = get_category(message.channel.name)
         if category is None:
             return
-        
+
         goal = await get_goal(category.category_id, user.user_id)
         if goal is None:
             return
@@ -230,7 +231,7 @@ VOICE_CHANNELS_JOIN_TIME = {}
 async def process_voice_channel_activity(member, before, after):
     member_joins_channel = before.channel is None and after.channel is not None
     member_leaves_channel = before.channel is not None and (after.channel is None or after.channel.name != before.channel.name)
-    
+
     user = await ensure_user(member)
 
     if member_joins_channel:
@@ -242,15 +243,15 @@ async def process_voice_channel_activity(member, before, after):
             return
         time_left = datetime.utcnow()
         time_spent = time_left - time_joined
-        
+
         category = await get_category_for_voice(before.channel.name)
         if category is None:
             return
-        
+
         goal = await get_goal(category.category_id, user.user_id)
         if goal is None:
             return
-        
+
         await new_submission(
             user_id=user.user_id,
             goal_id=goal.goal_id,
@@ -297,7 +298,7 @@ async def submit_command(interaction, amount: int):
             ephemeral=True,
         )
         return
-    
+
     await new_submission(
         user_id=user.user_id,
         goal_id=goal.goal_id,
@@ -305,7 +306,7 @@ async def submit_command(interaction, amount: int):
         amount=amount,
     )
 
-    await interaction.followup.send(f"Your progress is saved!", ephemeral=True)
+    await interaction.followup.send("Your progress is saved!", ephemeral=True)
 
 
 @tree.command(
@@ -371,11 +372,11 @@ async def init():
     DATABASE_URL = os.getenv('DATABASE_URL')
     if not DATABASE_URL:
         raise Exception("Please set the DATABASE_URL environment variable")
-    
+
     await init_db(DATABASE_URL)
 
     # await clean_database()
-    
+
     discord.utils.setup_logging()
     return await client.start(DISCORD_TOKEN)
 

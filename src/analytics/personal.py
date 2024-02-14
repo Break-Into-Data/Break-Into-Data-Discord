@@ -1,7 +1,5 @@
-from src.database import get_categories, select_raw
-
 from dataclasses import dataclass
-
+from src.database import get_categories, select_raw
 
 @dataclass
 class PersonalStatistics:
@@ -26,7 +24,7 @@ def _get_category_statistics(submissions, category_id):
 
 async def get_personal_statistics(user_id: int) -> PersonalStatistics:
     submissions = await select_raw("""
-        SELECT DATE(s.created_at), g.category_id, count(*) 
+        SELECT DATE(s.created_at), g.category_id, count(*)
             FROM submissions s
             JOIN goals g ON s.goal_id = g.goal_id
             WHERE s.created_at > now() - interval '1 week' AND s.user_id = :user_id
