@@ -16,7 +16,7 @@ async def test_process_csv_submission():
     ]
 
     # Call the function to test
-    result = _process_csv_submission(csv_data, category_name_to_goal_id)
+    result = _process_csv_submission(csv_data, category_name_to_goal_id, datetime.now())
 
     # Verify each item 
     for expected_item, result_item in zip(expected, result):
