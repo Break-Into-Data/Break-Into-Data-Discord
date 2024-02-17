@@ -208,10 +208,13 @@ async def on_message(message):
     if message.author == client.user:
         return
 
+    if str(message.channel.id) == SUBMISSION_CHANNEL_ID and message.content:
+        await process_submission_message(message)
+    
     if message.attachments:
         user = await ensure_user(message.author)
 
-        category = get_category(message.channel.name)
+        category = await get_category(message.channel.name)
         if category is None:
             return
 
@@ -226,10 +229,6 @@ async def on_message(message):
                 proof_url=attchemnt.url,
                 amount=0,
             )
-
-    if str(message.channel.id) == SUBMISSION_CHANNEL_ID and message.content:
-        await process_submission_message(message)
-
 
 # map from a user to it's voice channel join time
 VOICE_CHANNELS_JOIN_TIME = {}
