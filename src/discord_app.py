@@ -198,6 +198,7 @@ class TrackSettingsModal(discord.ui.Modal):
 
 @client.event
 async def on_ready():
+    """ Runs when the client becomes ready """
     logging.info(f'Logged in as {client.user}')
 
     await tree.sync(guild=discord.Object(id=DISCORD_SERVER_ID))
