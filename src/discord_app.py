@@ -2,7 +2,11 @@ import asyncio
 import os
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import (
+    datetime, 
+    timedelta, 
+    timezone
+    )
 import dotenv
 import discord
 from discord import app_commands
@@ -373,6 +377,19 @@ async def send_weekly_leaderboard():
     # TODO: run every hour, but send only after 24 hours from the last report
     # Leaderboard task only runs in production on Heroku
     logging.info('Sending weekly leaderboard')
+    channel = await client.fetch_channel(GENERAL_CHANNEL_ID)
+    #Get last message in channel
+    async for message in channel.history(limit=1):
+        last_message = message
+        break
+    if last_message and last_message.author == client.user:
+            if "Weekly leaderboard" in last_message.content:
+                time_since_last_message = datetime.now(timezone.utc) - last_message.created_at
+                if time_since_last_message < timedelta(hours=24):
+                    # It's been less than 24 hours since the last leaderboard message
+                    logging.info("Skipping sending leaderboard as it's been less than 24 hours.")
+                    return
+                
     leaderboards = await get_weekly_leaderboard()
 
     current_date = datetime.now().strftime("%d-%b-%Y")
@@ -389,7 +406,6 @@ async def send_weekly_leaderboard():
 
     msg = "\n".join(msg_parts)
 
-    channel = await client.fetch_channel(GENERAL_CHANNEL_ID)
     await channel.send(msg)
     logging.info('Successfully sent weekly leaderboard')
 
