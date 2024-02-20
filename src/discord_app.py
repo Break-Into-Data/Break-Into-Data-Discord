@@ -66,21 +66,25 @@ TRACKS = {
               default_tracking_metric="e.g. miles, minutes ",
               default_daily_target='e.g.30'),
         Track(name="Coding",
-              questions_needed=['target', 'frequency'],
-              default_tracking_metric="e.g. count number", default_daily_target='e.g. 3 or 5'),
+              questions_needed=['description', 'metric', 'target', 'frequency'],
+              default_tracking_metric="e.g. problems, minutes", 
+              default_daily_target='e.g. 3 or 5'),
         Track(name="Studying",
-              questions_needed=['target', 'frequency'],
-              default_tracking_metric="e.g. minutes, hours", default_daily_target='60 or 2'),
+              questions_needed=['description', 'metric', 'target', 'frequency'],
+              default_tracking_metric="e.g. minutes, chapters", 
+              default_daily_target='60 or 2'),
         Track(name="Meditation",
-              questions_needed=['target', 'frequency'],
-              default_tracking_metric="e.g. minutes, hours",
+              questions_needed=['description', 'metric', 'target', 'frequency'],
+              default_tracking_metric="e.g. minutes, sessions",
               default_daily_target='60 or 2'),
         Track(name="Content Creation",
-              questions_needed=['description', 'target', 'frequency'],
-              default_tracking_metric="e.g. posts, videos, blogs", default_daily_target='1 or 2'),
+              questions_needed=['description', 'metric', 'target', 'frequency'],
+              default_tracking_metric="e.g. posts, videos, blogs", 
+              default_daily_target='1 or 2'),
         Track(name="Other",
               questions_needed=['description', 'metric', 'target', 'frequency'],
-              default_tracking_metric="Smiles", default_daily_target=10),
+              default_tracking_metric="Smiles", 
+              default_daily_target=10),
     ]
 }
 
@@ -124,8 +128,8 @@ class TrackSettingsModal(discord.ui.Modal):
             # New field for their
             self.description_input = discord.ui.TextInput(
                 label="Description",
-                required=False,
-                placeholder="Describe your goal in few words")
+                required=True,
+                placeholder="Describe your goal!")
             self.add_item(self.description_input)
 
 
@@ -137,11 +141,11 @@ class TrackSettingsModal(discord.ui.Modal):
 
 
         target_map = {
-            'Coding': 'Daily coding challege goals? 1, 3, 5 problems',
-            'Meditation': 'Set your meditation goal in mins.',
+            'Coding': 'Daily coding goals? 5 problems/2 hours',
+            'Meditation': 'Set your meditation goal',
             'Fitness': 'What is your exercise target?',
-            'Studying': 'Set your study goal in mins.',
-            'Content Creation': 'How much content to make (daily or weekly)',
+            'Studying': 'Set your study goal',
+            'Content Creation': 'How much content to make?',
             'Other': 'Set your Number to measure.'
         }
 
