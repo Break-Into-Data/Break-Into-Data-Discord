@@ -185,7 +185,7 @@ async def get_user_goals(user_id):
 async def ensure_user(discord_user) -> User:
     user = await get_user(discord_user.id)
     if user is None:
-        user = await new_user(
+        user = await _new_user(
             user_id=discord_user.id,
             username=discord_user.name,
         )
