@@ -27,7 +27,7 @@ def _format_message(submission_items: list[ParsedSubmissionItem]):
 
 
 async def process_submission_message(message, is_backfill=False):
-    user_goals = await get_user_goals(481060911608496129)
+    user_goals = await get_user_goals(message.author.id)
 
     if not user_goals:
         if not is_backfill:
