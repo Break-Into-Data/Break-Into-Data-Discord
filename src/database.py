@@ -1,3 +1,4 @@
+import datetime
 import logging
 from typing import Optional
 
@@ -93,15 +94,19 @@ async def _new_user(user_id, username, email=None) -> User:
         ).returning(User))
 
         user = cursor.fetchone()
+        
+        get_user.cache_invalidate(user_id)
+        
         logger.info(f"New user created: {username} with ID {user_id}")
         return user
 
-async def new_submission(user_id, goal_id, proof_url, amount) -> Submission:
+async def new_submission(user_id, goal_id, proof_url, amount, created_at=None) -> Submission:
     async with DB_ENGINE.begin() as conn:
         cursor = await conn.execute(insert(Submission).values(
             user_id=user_id,
             goal_id=goal_id,
             proof_url=proof_url,
+            created_at=created_at or datetime.datetime.now(datetime.UTC),
             amount=amount,
         ).returning(Submission))
 
@@ -133,7 +138,6 @@ async def new_goal(user_id, category_id,goal_description, metric, target, freque
 async def get_category(text_channel) -> Optional[Category]:
     async with DB_ENGINE.begin() as conn:
         return (await conn.execute(select(Category).where(Category.text_channel == text_channel))).first()
-
 
 
 @alru_cache(maxsize=1000)

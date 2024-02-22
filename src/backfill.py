@@ -39,7 +39,7 @@ async def backfill_submissions():
     channel = await client.fetch_channel(SUBMISSION_CHANNEL_ID)
 
     async for message in iterate_channel_messages(channel, batch_limit=BATCH_LIMIT, days=FETCH_DAYS):
-        await process_discord_message(message)
+        await process_discord_message(message, is_backfill=True)
                 
 
 @client.event

@@ -261,12 +261,19 @@ async def on_ready():
     await send_weekly_leaderboard.start()
 
 
-async def process_discord_message(message: discord.Message):
+async def process_discord_message(message: discord.Message, is_backfill=False):
     if message.author == client.user:
         return
+    
+    await ensure_user(message.author)
+    
+    is_channel_correct = (
+        str(message.channel.id) == SUBMISSION_CHANNEL_ID 
+        or backfill
+    )
 
-    if str(message.channel.id) == SUBMISSION_CHANNEL_ID and message.content:
-        await process_submission_message(message)
+    if is_channel_correct and message.content:
+        await process_submission_message(message, is_backfill=is_backfill)
     
     if message.attachments:
         #check - Maybe we should check if user has a goal and if not ask them to declare it. 
@@ -280,11 +287,11 @@ async def process_discord_message(message: discord.Message):
         if goal is None:
             return
 
-        for attchemnt in message.attachments:
+        for attachment in message.attachments:
             await new_submission(
                 user_id=user.user_id,
                 goal_id=goal.goal_id,
-                proof_url=attchemnt.url,
+                proof_url=attachment.url,
                 amount=0,
             )
 

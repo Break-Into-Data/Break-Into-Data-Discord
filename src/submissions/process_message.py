@@ -26,11 +26,12 @@ def _format_message(submission_items: list[ParsedSubmissionItem]):
     )
 
 
-async def process_submission_message(message):
-    user_goals = await get_user_goals(message.author.id)
+async def process_submission_message(message, is_backfill=False):
+    user_goals = await get_user_goals(481060911608496129)
 
     if not user_goals:
-        await message.reply("Please configre your goals first in `declare_your_goals_here` channel.")
+        if not is_backfill:
+            await message.reply("Please configure your goals first in `declare_your_goals_here` channel.")
         return
 
     submission_items = await parse_submission_message(
@@ -42,12 +43,14 @@ async def process_submission_message(message):
     print(submission_items)
 
     if not submission_items:
-        await message.reply("No submissions found.")
+        if not is_backfill:
+            await message.reply("No submissions found.")
         return
 
     formatted_message = _format_message(submission_items)
 
-    await message.reply(formatted_message)
+    if not is_backfill:
+        await message.reply(formatted_message)
 
     for item in submission_items:
         await new_submission(
@@ -55,4 +58,5 @@ async def process_submission_message(message):
             goal_id=item.goal_id,
             proof_url=None,
             amount=item.value or 0,
+            created_at=item.submission_time,
         )
