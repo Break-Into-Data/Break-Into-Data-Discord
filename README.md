@@ -51,18 +51,3 @@ If you encounter any issues or have questions about using the bot, feel free to 
 ## Contributing
 
 We're always looking to improve and expand the bot's functionalities. If you have suggestions or would like to contribute to the development, please mention it on the discord or submit an issue to this repository. Check out our [CONTRIBUTING.md](.github/workflows/CONTRIBUTING.md) file for more information on how you can be part of building this awesome bot. 
-
-
-## Database View and Tables: 
-
-Category table
-<img width="953" alt="Screen Shot 2024-03-06 at 1 59 58 PM" src="https://github.com/Break-Into-Data/Break-Into-Data-Discord/assets/44347897/63920cbd-c81e-44f6-bcea-4219659c4211">
-
-Goals table
-<img width="1158" alt="Screen Shot 2024-03-06 at 2 03 09 PM" src="https://github.com/Break-Into-Data/Break-Into-Data-Discord/assets/44347897/85f564f1-fe10-4d9e-931b-1dd416525086">
-
-Submissions table
-<img width="1000" alt="Screen Shot 2024-03-06 at 2 03 46 PM" src="https://github.com/Break-Into-Data/Break-Into-Data-Discord/assets/44347897/17ba5625-4ebf-48b9-afae-53557340afbb">
-
-Users
-<img width="1150" alt="Screen Shot 2024-03-06 at 2 04 31 PM" src="https://github.com/Break-Into-Data/Break-Into-Data-Discord/assets/44347897/9c9d3776-e82c-4164-a308-8deecb7478c5">
