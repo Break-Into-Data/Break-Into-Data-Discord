@@ -67,12 +67,10 @@ async def clean_database():
 
 async def save_user_personal_details(discord_user, email, name) -> User:
     user = await ensure_user(discord_user)
-    roles_names = [role.name for role in discord_user.roles]
     async with DB_ENGINE.begin() as conn:
         cursor = await conn.execute(update(User).where(
             User.user_id==user.user_id).values(
-                email=email, name=name,
-                user_roles=roles_names
+                email=email, name=name
         ).returning(User))
 
         user = cursor.fetchone()
