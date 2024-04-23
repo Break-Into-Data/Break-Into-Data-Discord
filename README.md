@@ -4,8 +4,6 @@ This Accountability bot is here to enhance your experience, helping you track yo
 
 ![image](images/system_diagram.png)
 
-View the editable version of this diagram [here](https://lucid.app/lucidchart/a9c157f6-8695-4d2a-b63d-3140dd41b394/edit?viewport_loc=34%2C-365%2C2194%2C1256%2C0_0&invitationId=inv_fa0ca8f2-a8ea-45d7-9d63-0f1b899232a2)
-
 
 ## Features
 
@@ -16,6 +14,8 @@ View the editable version of this diagram [here](https://lucid.app/lucidchart/a9
 - **Community Engagement**: Participate in community-wide challenges and goal-setting activities, fostering a supportive and motivational environment.
 
 ## Getting Started
+
+<iframe src="https://discord.com/widget?id=1168693434572345346&theme=dark" width="350" height="500" allowtransparency="true" frameborder="0" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"></iframe>
 
 ### Complete Your Profile
 Before setting up your goals you have to create a profile. Include your name and your email address. 
