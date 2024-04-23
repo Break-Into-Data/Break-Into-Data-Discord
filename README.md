@@ -15,8 +15,6 @@ This Accountability bot is here to enhance your experience, helping you track yo
 
 ## Getting Started
 
-<iframe src="https://discord.com/widget?id=1168693434572345346&theme=dark" width="350" height="500" allowtransparency="true" frameborder="0" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"></iframe>
-
 ### Complete Your Profile
 Before setting up your goals you have to create a profile. Include your name and your email address. 
 
