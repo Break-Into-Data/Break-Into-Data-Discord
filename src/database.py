@@ -3,33 +3,36 @@ import logging
 from typing import Optional
 
 from sqlalchemy import (
-    delete,
-    func, 
-    insert, 
-    select, 
-    text, 
+    func,
+    text,
+    insert,
+    select,
     update,
+    delete,
 )
 from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.orm import (
-    declarative_base,
     joinedload,
+    declarative_base,
 )
 from async_lru import alru_cache
 
 from src.models import (
-    Category,
     User,
-    Submission,
     Goal,
+    Event,
+    Category,
+    Submission,
+    Leaderboard,
+    ExternalPlatform,
+    ExternalPlatformConnection,
 )
+
 
 # Setting up logger
 logger = logging.getLogger(__name__)
-
-Base = declarative_base()
 
 DB_ENGINE = None
 
@@ -42,6 +45,12 @@ async def init_db(database_url: str):
             database_url,
             echo=False,
         )
+        
+        # create tables
+        # async with DB_ENGINE.begin() as conn:
+        #     from src.models import Base
+        #     await conn.run_sync(Base.metadata.create_all)
+        
         logger.info("Database initialized successfully.")
     except Exception:
         logger.exception("Failed to initialize database")
@@ -50,19 +59,6 @@ async def init_db(database_url: str):
 async def close_db():
     if DB_ENGINE is not None:
         await DB_ENGINE.dispose()
-
-
-async def clean_database():
-    if input("Are you sure you want to drop everything? (y/n) ") != 'y':
-        print('Skipping')
-        return
-
-    async with DB_ENGINE.begin() as conn:
-        print()
-        print(await conn.execute(delete(Submission)))
-        print(await conn.execute(delete(Goal)))
-        print(await conn.execute(delete(User)))
-        print()
 
 
 async def save_user_personal_details(discord_user, email, name) -> User:
@@ -104,7 +100,7 @@ async def _new_user(user_id, username) -> User:
 
 async def new_submission(
     user_id, goal_id, proof_url, amount, 
-    created_at=None, is_voice=False,
+    created_at=None, voice_channel: str = None,
 ) -> Submission:
     async with DB_ENGINE.begin() as conn:
         cursor = await conn.execute(insert(Submission).values(
@@ -113,7 +109,8 @@ async def new_submission(
             proof_url=proof_url,
             created_at=created_at or datetime.datetime.now(datetime.UTC),
             amount=amount,
-            is_voice=is_voice,
+            is_voice=voice_channel is not None,
+            voice_channel=voice_channel,
         ).returning(Submission))
 
         submission = cursor.fetchone()
@@ -297,3 +294,85 @@ async def get_users_to_notify(timezone_shift: int):
         rows = (await conn.execute(stmt)).fetchall()
 
     return rows
+
+
+async def list_leaderboards() -> list[Leaderboard]:
+    async with DB_ENGINE.begin() as conn:
+        leaderboards = await conn.execute(select(Leaderboard))
+        return leaderboards.fetchall()
+
+
+async def update_leaderboard_last_sent(leaderboard_id, timestamp):
+    async with DB_ENGINE.begin() as conn:
+        await conn.execute(update(Leaderboard).where(
+            Leaderboard.leaderboard_id==leaderboard_id).values(
+                last_sent=timestamp,
+        ))
+
+    logger.info(f"Updated last_sent for leaderboard {leaderboard_id}")
+
+
+async def list_submissions_by_voice_channel(voice_channel) -> Submission:
+    async with DB_ENGINE.begin() as conn:
+        return (await conn.execute(
+            select(Submission)
+                .where(Submission.voice_channel == voice_channel)
+                .order_by(Submission.created_at)
+        )).fetchall()
+    
+    
+async def create_event(user_id, event_type, payload):
+    async with DB_ENGINE.begin() as conn:
+        cursor = await conn.execute(insert(Event).values(
+            user_id=user_id,
+            event_type=event_type,
+            payload=payload,
+        ).returning(Event))
+
+        event = cursor.fetchone()
+        logger.info(f"New event for user {user_id}: {event_type}")
+        return event
+
+
+@alru_cache(maxsize=1000)
+async def get_external_platform(platform_name) -> Optional[ExternalPlatform]:
+    async with DB_ENGINE.begin() as conn:
+        return (await conn.execute(select(ExternalPlatform).where(
+            ExternalPlatform.platform_name == platform_name))).first()
+    
+
+@alru_cache(maxsize=1000)
+async def get_external_platform_by_id(platform_id) -> Optional[ExternalPlatform]:
+    async with DB_ENGINE.begin() as conn:
+        return (await conn.execute(select(ExternalPlatform).where(
+            ExternalPlatform.platform_id == platform_id))).first()
+
+
+async def create_external_platform_connection(user_id, platform_id, user_name, user_data=None):
+    async with DB_ENGINE.begin() as conn:
+        cursor = await conn.execute(insert(ExternalPlatformConnection).values(
+            user_id=user_id,
+            platform_id=platform_id,
+            user_name=user_name,
+            user_data=user_data,
+        ).returning(ExternalPlatformConnection))
+
+        connection = cursor.fetchone()
+        logger.info(f"New external platform connection for user {user_id}")
+        return connection
+
+
+async def list_external_platform_connections():
+    async with DB_ENGINE.begin() as conn:
+        return (await conn.execute(select(ExternalPlatformConnection))).fetchall()
+    
+
+async def set_external_platform_connection_user_data(connection_id, user_data):
+    async with DB_ENGINE.begin() as conn:
+        await conn.execute(update(ExternalPlatformConnection).where(
+            ExternalPlatformConnection.connection_id == connection_id,
+        ).values(
+            user_data=user_data,
+        ))
+
+    logger.info(f"Updated user data for external platform connection {connection_id}")

@@ -50,5 +50,5 @@ async def process_voice_channel_activity(member, before, after):
             goal_id=goal.goal_id,
             proof_url=None,
             amount=int(round(time_spent.seconds / 60 + 0.5)),
-            is_voice=True,
+            voice_channel=before.channel.name,
         )

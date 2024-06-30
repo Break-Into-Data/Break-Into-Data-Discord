@@ -1,5 +1,5 @@
-import asyncio
 import os
+import asyncio
 import logging
 from datetime import (
     datetime, 
@@ -9,23 +9,28 @@ from datetime import (
 
 import dotenv
 import discord
+import sentry_sdk
 from discord import app_commands
 from discord.ext import tasks
 
 from src.database import (
-    get_user_goals,
     init_db,
     get_goal,
     ensure_user,
     get_category,
     new_submission,
+    get_user_goals,
 )
 from src.buttons import TrackSettingsView
+from src.metrics_collection.events import process_event_collection, save_event
+from src.models import EventType
 from src.notifications.notifications import send_daily_notifications
+from src.submissions.automated_collection import collect_submissions_automatically
 from src.submissions.process_message import process_discord_message
 from src.analytics.personal import get_personal_statistics
 from src.analytics.leaderboard import get_weekly_leaderboard
 from src.submissions.voice_submissions import process_voice_channel_activity
+from src.ui.connected_platforms import ConnectExternalPlatform
 from src.ui.ml_30days import Challenge30DaysML
 
 
@@ -38,6 +43,19 @@ DISCORD_SERVER_ID = os.environ['DISCORD_SERVER_ID']
 SUBMISSION_CHANNEL_ID = os.environ['SUBMISSION_CHANNEL_ID']
 # TODO: add this to config
 CHALLENGE_30DAYS_ML_CHANNEL_ID = 1236400428724260996
+SENTRY_DSN = os.environ['SENTRY_DSN']
+
+sentry_sdk.init(
+    dsn=SENTRY_DSN,
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    traces_sample_rate=1.0,
+    # Set profiles_sample_rate to 1.0 to profile 100%
+    # of sampled transactions.
+    # We recommend adjusting this value in production.
+    profiles_sample_rate=1.0,
+)
+
 
 intents = discord.Intents.all()
 client = discord.Client(
@@ -59,40 +77,39 @@ async def on_ready():
     logging.info('Logged in as %s', client.user)
 
     await tree.sync(guild=discord.Object(id=DISCORD_SERVER_ID))
-    channel = await client.fetch_channel(SETTINGS_CHANNEL_ID)
-    view = TrackSettingsView()
+
+    await _upsert_message_in_channel(
+        client, 
+        view=TrackSettingsView(), 
+        channel_id=SETTINGS_CHANNEL_ID,
+        msg_header="**Pick your goal:**",
+    )
+    
+    await _upsert_message_in_channel(
+        client, 
+        view=ConnectExternalPlatform(), 
+        channel_id=SETTINGS_CHANNEL_ID,
+        msg_header="**Connect external platforms:**",
+    )
+
+    await send_weekly_leaderboard.start()
+
+
+async def _upsert_message_in_channel(client, view, channel_id, msg_header):
+    channel = await client.fetch_channel(channel_id)
+    
     logging.info('Checking for existing message with goal buttons.')
 
-    msg_header = "**Pick your goal:**"
-    async for message in channel.history(limit=2):
+    async for message in channel.history(limit=10):
         if message.author == client.user and msg_header in message.content:
             # Found an existing message to update
             await message.edit(content=msg_header, view=view)
-            logging.info('Updated existing message with goal buttons.')
+            logging.info(f'Updated existing message ({msg_header}).')
             break
     else:
         # No existing message found
         await channel.send(msg_header, view=view)
-        logging.info('No existing message. Sent new message.')
-            
-    channel = await client.fetch_channel(CHALLENGE_30DAYS_ML_CHANNEL_ID)
-    logging.info('Checking for existing message with 30d ML buttons.')
-    view_30days_ml = Challenge30DaysML()
-    msg_header = "**30 Days ML Challenge**"
-    async for message in channel.history(limit=2):
-        if message.author == client.user and msg_header in message.content:
-            # Found an existing message to update
-            await message.edit(content=msg_header, view=view_30days_ml)
-            logging.info('30 Days ML - Updated existing message.')
-            break
-    else:
-        # No existing message found
-        await channel.send(msg_header, view=view_30days_ml)
-        logging.info('30 Days ML - No existing message. Sent new message.')
-            
-    await notify_by_timezone.start()
-
-    await send_weekly_leaderboard.start()
+        logging.info(f'No existing message. Sent new message ({msg_header}).')
 
 
 @client.event
@@ -191,6 +208,8 @@ async def stats_command(interaction):
 )
 async def user_goals(interaction):
     await interaction.response.defer(ephemeral=False, thinking=True)
+    
+    await ensure_user(interaction.user)
 
     goals = await get_user_goals(interaction.user.id)
     if goals:
@@ -200,11 +219,6 @@ async def user_goals(interaction):
     else:
         await interaction.followup.send("You currently have no active goals.", ephemeral=False)
 
-
-@tasks.loop(hours=1)
-async def notify_by_timezone():
-    await send_daily_notifications(client)
-    
 
 @tasks.loop(hours=24)
 async def send_weekly_leaderboard():
@@ -236,7 +250,7 @@ async def send_weekly_leaderboard():
 
     msg = "\n".join(msg_parts)
 
-    await channel.send(msg)
+    # await channel.send(msg)
     logging.info('Successfully sent weekly leaderboard')
 
 
@@ -246,10 +260,14 @@ async def init():
         raise Exception("Please set the DATABASE_URL environment variable")
 
     await init_db(DATABASE_URL)
-    
     discord.utils.setup_logging()
-    return await client.start(DISCORD_TOKEN)
+    
+    return await asyncio.gather(
+        client.start(DISCORD_TOKEN),
+        process_event_collection(),
+        collect_submissions_automatically(client),
+    )
 
-
+    
 if __name__ == "__main__":
     asyncio.run(init())

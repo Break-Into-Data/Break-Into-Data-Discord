@@ -10,3 +10,4 @@ pytz==2024.1
 #below are for testing
 pytest-asyncio
 pytest
+sentry-sdk==2.7.1
